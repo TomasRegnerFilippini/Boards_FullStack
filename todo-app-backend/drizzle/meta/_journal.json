@@ -15,6 +15,13 @@
       "when": 1751565051224,
       "tag": "0001_mixed_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1751643461740,
+      "tag": "0002_supreme_vindicator",
+      "breakpoints": true
     }
   ]
 }

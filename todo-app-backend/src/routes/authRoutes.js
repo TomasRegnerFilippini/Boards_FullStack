@@ -1,54 +1,39 @@
 // src/routes/authRoutes.js
-// src/routes/authRoutes.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('../db'); // Importa la instancia de la base de datos
-const { users } = require('../db/schema'); // Importa la tabla de usuarios del esquema
-const { eq } = require('drizzle-orm'); // Necesitas 'eq' para la cláusula WHERE
-
-console.log('db imported in authRoutes.js:', !!db); // Depuración: true si db no es undefined
-console.log('users table imported in authRoutes.js:', !!users); // Depuración: true si users no es undefined
+const db = require('../db');
+const { users } = require('../db/schema');
+const { eq } = require('drizzle-orm'); // Necesario para las consultas WHERE
 
 const router = express.Router();
 
-// Ruta de Registro de Usuario
+// Ruta de Registro
 router.post('/register', async (req, res) => {
+    const { username, email, password } = req.body; // Ahora esperamos 'email'
+
+    if (!email || !password) { // Validamos 'email' y 'password'
+        return res.status(400).json({ message: 'Correo electrónico y contraseña son requeridos.' });
+    }
+
     try {
-        const { username, password } = req.body;
-
-        // Validar entradas básicas
-        if (!username || !password) {
-            return res.status(400).json({ message: 'Nombre de usuario y contraseña son requeridos.' });
-        }
-        if (password.length < 6) {
-            return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres.' });
+        // Verificar si el correo ya existe
+        const existingUser = await db.select().from(users).where(eq(users.email, email));
+        if (existingUser.length > 0) {
+            return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
         }
 
-        // 1. Verificar si el usuario ya existe
-        // La línea 26 del error original (si las líneas coinciden) es db.select()
-        const existingUsers = await db.select().from(users).where(eq(users.username, username));
-        if (existingUsers.length > 0) {
-            return res.status(409).json({ message: 'El usuario ya existe' });
-        }
+        const passwordHash = await bcrypt.hash(password, 10);
 
-        // 2. Hashear la contraseña
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // 3. Insertar el nuevo usuario en la base de datos
+        // Insertar el nuevo usuario con email
         const newUser = await db.insert(users).values({
-            username: username,
-            passwordHash: hashedPassword
-        }).returning(); // .returning() para obtener el usuario insertado
+            username: username || email, // Puedes mantener username como opcional o usar el email como username si no se proporciona
+            email, // Guardamos el email
+            passwordHash,
+        }).returning({ id: users.id, username: users.username, email: users.email }); // Retornar email también
 
-        // Asegurarse de que el usuario fue insertado (Drizzle con .returning() devuelve un array)
-        if (!newUser || newUser.length === 0) {
-            return res.status(500).json({ message: 'Error al crear el usuario' });
-        }
-
-        // 4. Generar JWT (si el registro es exitoso, puedes generar un token para iniciar sesión automáticamente)
         const token = jwt.sign(
-            { userId: newUser[0].id, username: newUser[0].username }, // Acceder al primer elemento del array
+            { userId: newUser[0].id, username: newUser[0].username, email: newUser[0].email }, // Incluir email en el token
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
@@ -56,40 +41,39 @@ router.post('/register', async (req, res) => {
         res.status(201).json({
             message: 'Usuario registrado exitosamente',
             token,
-            user: {
-                id: newUser[0].id,
-                username: newUser[0].username
-            }
+            user: { id: newUser[0].id, username: newUser[0].username, email: newUser[0].email }
         });
-
     } catch (error) {
-        console.error('Error en el registro:', error);
-        res.status(500).json({ message: 'Error interno del servidor durante el registro' });
+        console.error('Error al registrar usuario:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
     }
 });
 
-// Ruta de Inicio de Sesión de Usuario
+// Ruta de Login
 router.post('/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
+    const { email, password } = req.body; // Ahora esperamos 'email'
 
-        // 1. Buscar el usuario por nombre de usuario
-        const existingUsers = await db.select().from(users).where(eq(users.username, username));
-        const user = existingUsers[0]; // Drizzle select devuelve un array
+    if (!email || !password) { // Validamos 'email' y 'password'
+        return res.status(400).json({ message: 'Correo electrónico y contraseña son requeridos.' });
+    }
+
+    try {
+        // Buscar usuario por email
+        const userArray = await db.select().from(users).where(eq(users.email, email));
+        const user = userArray[0];
 
         if (!user) {
-            return res.status(401).json({ message: 'Credenciales inválidas' });
+            return res.status(401).json({ message: 'Credenciales inválidas.' });
         }
 
-        // 2. Comparar la contraseña hasheada
         const isMatch = await bcrypt.compare(password, user.passwordHash);
+
         if (!isMatch) {
-            return res.status(401).json({ message: 'Credenciales inválidas' });
+            return res.status(401).json({ message: 'Credenciales inválidas.' });
         }
 
-        // 3. Generar JWT
         const token = jwt.sign(
-            { userId: user.id, username: user.username },
+            { userId: user.id, username: user.username, email: user.email }, // Incluir email en el token
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
@@ -97,15 +81,11 @@ router.post('/login', async (req, res) => {
         res.status(200).json({
             message: 'Inicio de sesión exitoso',
             token,
-            user: {
-                id: user.id,
-                username: user.username
-            }
+            user: { id: user.id, username: user.username, email: user.email }
         });
-
     } catch (error) {
-        console.error('Error en el login:', error);
-        res.status(500).json({ message: 'Error interno del servidor durante el inicio de sesión' });
+        console.error('Error al iniciar sesión:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
     }
 });
 
