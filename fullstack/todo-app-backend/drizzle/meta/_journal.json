@@ -22,6 +22,20 @@
       "when": 1751643461740,
       "tag": "0002_supreme_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1751646058330,
+      "tag": "0003_green_logan",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1751649570017,
+      "tag": "0004_jazzy_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

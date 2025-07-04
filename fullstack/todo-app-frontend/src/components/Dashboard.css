@@ -1,0 +1,147 @@
+/* src/components/Dashboard.css */
+
+.dashboard-container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+.logout-button {
+    background-color: #dc3545; /* Rojo */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    float: right; /* Alinea a la derecha */
+    margin-bottom: 20px;
+}
+
+.logout-button:hover {
+    background-color: #c82333;
+}
+
+/* Limpiar el float después del botón de logout */
+.dashboard-container::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.task-form {
+    display: flex;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.task-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.add-task-button {
+    background-color: #007bff; /* Azul */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.add-task-button:hover {
+    background-color: #0056b3;
+}
+
+.tasks-list {
+    list-style: none;
+    padding: 0;
+}
+
+.no-tasks-message {
+    text-align: center;
+    color: #666;
+    margin-top: 20px;
+}
+
+/* Estilo para cada tarea individual */
+.task-item {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between; /* Espacia contenido y acciones */
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: background-color 0.2s ease;
+}
+
+.task-item:hover {
+    background-color: #f0f0f0; /* Ligero cambio al pasar el ratón */
+}
+
+/* Estilo para cuando se está arrastrando un elemento */
+.task-item.is-dragging {
+    background-color: #e0f7fa; /* Un color claro para indicar que se está moviendo */
+    border-color: #00bcd4;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.task-content h3 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.task-content p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.task-actions button {
+    background-color: #28a745; /* Verde para completar */
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 10px;
+    font-size: 14px;
+}
+
+.task-actions button:hover {
+    opacity: 0.9;
+}
+
+.task-actions .delete-button {
+    background-color: #ffc107; /* Amarillo para eliminar */
+    color: #333;
+}
+
+.task-actions .delete-button:hover {
+    background-color: #e0a800;
+}
+
+.task-actions .edit-button {
+    background-color: #17a2b8; /* Azul claro para editar */
+}
+
+.task-actions .edit-button:hover {
+    background-color: #138496;
+}

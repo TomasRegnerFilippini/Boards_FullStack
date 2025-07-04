@@ -3,33 +3,63 @@ require('dotenv').config(); // Cargar variables de entorno al principio
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./src/routes/authRoutes');
-const taskRoutes = require('./src/routes/taskRoutes'); // Importa las nuevas rutas de tareas
+const taskRoutes = require('./src/routes/taskRoutes'); // taskRoutes ahora maneja reordenamiento
+// const reorderRoutes = require('./src/routes/reorderRoutes'); // ¡Ya no se importa!
 const db = require('./src/db'); // Importa la instancia de db para asegurar que se inicialice
 
 const app = express();
-const PORT = process.env.PORT || 5000; // Confirmado que el servidor corre en el puerto 5000
+const PORT = process.env.PORT || 5000; // Confirma que el servidor corre en el puerto 5000
 
 // Middleware
 app.use(cors()); // Habilita CORS para permitir solicitudes desde el frontend
 app.use(express.json()); // Para parsear cuerpos de solicitud JSON
+app.use(express.urlencoded({ extended: true })); // Para parsear datos de formularios URL-encoded
+
+// --- LOG DE DEPURACIÓN GLOBAL ---
+// Este middleware se ejecutará para CADA solicitud que llegue a Express.
+app.use((req, res, next) => {
+    console.log(`--- Petición entrante: ${req.method} ${req.url} ---`);
+    console.log('Headers (Authorization):', req.headers.authorization ? 'Presente' : 'Ausente');
+    // Para evitar que el body se lea dos veces y cause problemas, solo lo logueamos si es un POST/PUT
+    if (req.method === 'POST' || req.method === 'PUT') {
+        console.log('Body (antes de ruta):', JSON.stringify(req.body, null, 2));
+    }
+    next(); // Pasa la solicitud al siguiente middleware/ruta
+});
+// --- FIN LOG DE DEPURACIÓN GLOBAL ---
+
+// --- RUTA DE PRUEBA TEMPORAL ---
+// Puedes eliminar esta ruta una vez que la funcionalidad de reordenamiento esté confirmada.
+app.get('/test-express-route-setup', (req, res) => {
+    console.log('--- ¡¡¡RUTA DE PRUEBA /test-express-route-setup ACTIVADA!!! ---');
+    res.status(200).send('Ruta de prueba de Express activada correctamente.');
+});
+// --- FIN RUTA DE PRUEBA TEMPORAL ---
+
 
 // Rutas
 app.use('/api/auth', authRoutes); // Rutas para registro y login
-app.use('/api/tasks', taskRoutes); // Rutas para operaciones con tareas (crear, leer, etc.)
+app.use('/api/tasks', taskRoutes); // Rutas para operaciones CRUD de tareas, ¡incluyendo reordenamiento ahora!
+// app.use('/api/tasks/reorder', reorderRoutes); // ¡Ya no se monta aquí!
 
-// Ruta de prueba simple
+// Ruta de prueba simple para la raíz del API
 app.get('/', (req, res) => {
-  res.send('API de Todo-App funcionando!');
+    res.send('API de Todo-App funcionando!');
+});
+
+// Middleware de manejo de errores (al final de todas las rutas)
+app.use((err, req, res, next) => {
+    console.error('ERROR GLOBAL EN EXPRESS:', err.stack);
+    res.status(500).send('Algo salió mal en el servidor!');
 });
 
 // Iniciar el servidor
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  // Opcional: una prueba de conexión a la base de datos al iniciar el servidor
-  // Esta parte no es estrictamente necesaria para que el servidor funcione, pero ayuda a depurar.
-  // db.select().from(db.users).limit(0).then(() => {
-  //   console.log('Database connection successful!');
-  // }).catch(err => {
-  //   console.error('Database connection failed:', err);
-  // });
+    console.log(`Server corriendo en el puerto ${PORT}`);
+    // Opcional: una prueba de conexión a la base de datos al iniciar el servidor
+    // db.select().from(db.users).limit(0).then(() => {
+    //   console.log('¡Conexión a la base de datos exitosa!');
+    // }).catch(err => {
+    //   console.error('Fallo la conexión a la base de datos:', err);
+    // });
 });

@@ -1,66 +1,101 @@
-### @name 1. Register User
-# POST /api/auth/register - Registra un nuevo usuario en la base de datos.
+### Register User
+# Crea un nuevo usuario. ¡Usa un email diferente cada vez!
 POST http://localhost:5000/api/auth/register
 Content-Type: application/json
 
 {
-    "username": "myuser",
-    "password": "mypassword123"
+    "username": "otro_usuario_ejemplo_2",
+    "email": "otro.email.ejemplo.2@example.com",
+    "password": "otra_password_fuerte_2"
 }
 
-### @name 2. Login User
-# POST /api/auth/login - Inicia sesión y obtiene un token JWT para el usuario.
-# Si tu token actual expira, puedes ejecutar esta solicitud de nuevo para obtener uno nuevo.
+
+
+### Login User
+# Inicia sesión para obtener un token JWT actualizado, si necesitas uno nuevo.
+# El token actual ya está en las demás consultas de abajo.
 POST http://localhost:5000/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "myuser",
-    "password": "mypassword123"
+    "email": "nuevo.email.prueba@example.com",
+    "password": "password_segura"
 }
 
-### @name 3. Create Task
-# POST /api/tasks - Crea una nueva tarea para el usuario autenticado.
-# Requiere un token JWT válido en el encabezado Authorization.
+
+### Create Task
+# Crea una nueva tarea para el usuario autenticado.
+# El backend asigna automáticamente el 'orderIndex'.
 POST http://localhost:5000/api/tasks
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYsInVzZXJuYW1lIjoibnVldm9fdXN1YXJpb19wcnVlYmEiLCJlbWFpbCI6Im51ZXZvLmVtYWlsLnBydWViYUBleGFtcGxlLmNvbSIsImlhdCI6MTc1MTY0OTY2OCwiZXhwIjoxNzUxNjUzMjY4fQ.ye6wtIf6moa40ZJsnIqbgGkdYalNVJxw75X0mT4RxK0
 
 {
-    "title": "Configurar ambiente de desarrollo",
-    "description": "Instalar Node.js, npm, git y VS Code.",
+    "title": "Finalizar informe mensual",
+    "description": "Recopilar datos y redactar conclusiones.",
     "status": "pending",
     "priority": "high",
-    "dueDate": "2025-07-05T17:00:00Z"
+    "dueDate": "2025-07-31T17:00:00Z"
 }
 
-### @name 4. Get All Tasks
-# GET /api/tasks - Obtiene todas las tareas del usuario autenticado.
-# Requiere un token JWT válido.
+
+
+### Get All Tasks
+# Obtiene todas las tareas del usuario autenticado, ordenadas por 'orderIndex'.
+# ¡CONFIRMA aquí los IDs y el 'orderIndex' para las siguientes consultas!
 GET http://localhost:5000/api/tasks
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYsInVzZXJuYW1lIjoibnVldm9fdXN1YXJpb19wcnVlYmEiLCJlbWFpbCI6Im51ZXZvLmVtYWlsLnBydWViYUBleGFtcGxlLmNvbSIsImlhdCI6MTc1MTY0OTY2OCwiZXhwIjoxNzUxNjUzMjY4fQ.ye6wtIf6moa40ZJsnIqbgGkdYalNVJxw75X0mT4RxK0
 
-### @name 5. Get Task by ID
-# GET /api/tasks/:id - Obtiene una tarea específica por su ID, si pertenece al usuario.
-# Requiere un token JWT válido. Reemplaza '1' con el ID real de una tarea que hayas creado.
-GET http://localhost:5000/api/tasks/1
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
 
-### @name 6. Update Task
-# PUT /api/tasks/:id - Actualiza una tarea existente por su ID, si pertenece al usuario.
-# Requiere un token JWT válido. Reemplaza '1' con el ID real de una tarea.
-PUT http://localhost:5000/api/tasks/1
+
+### Get Task by ID
+# Obtiene una tarea específica por su ID.
+# Usa un ID real de tu 'Get All Tasks' (por ejemplo, 10, 12, 13).
+GET http://localhost:5000/api/tasks/14
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYsInVzZXJuYW1lIjoibnVldm9fdXN1YXJpb19wcnVlYmEiLCJlbWFpbCI6Im51ZXZvLmVtYWlsLnBydWViYUBleGFtcGxlLmNvbSIsImlhdCI6MTc1MTY0OTY2OCwiZXhwIjoxNzUxNjUzMjY4fQ.ye6wtIf6moa40ZJsnIqbgGkdYalNVJxw75X0mT4RxK0
+
+
+
+### Update Task
+# Actualiza una tarea existente por su ID.
+# Usa un ID real de tu 'Get All Tasks' (por ejemplo, 12).
+PUT http://localhost:5000/api/tasks/14
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYsInVzZXJuYW1lIjoibnVldm9fdXN1YXJpb19wcnVlYmEiLCJlbWFpbCI6Im51ZXZvLmVtYWlsLnBydWViYUBleGFtcGxlLmNvbSIsImlhdCI6MTc1MTY0OTY2OCwiZXhwIjoxNzUxNjUzMjY4fQ.ye6wtIf6moa40ZJsnIqbgGkdYalNVJxw75X0mT4RxK0
 
 {
-    "title": "Configurar ambiente (Completado)",
+    "title": "Reunión de equipo (Actualizado)",
     "status": "completed",
-    "completedAt": "2025-07-03T18:45:00Z"
+    "priority": "low",
+    "completedAt": "2025-07-04T14:30:00Z"
 }
 
-### @name 7. Delete Task
-# DELETE /api/tasks/:id - Elimina una tarea por su ID, si pertenece al usuario.
-# Requiere un token JWT válido. Reemplaza '1' con el ID real de una tarea.
-DELETE http://localhost:5000/api/tasks/1
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
+
+
+### Delete Task
+# Elimina una tarea por su ID.
+# Usa un ID real de tu 'Get All Tasks' que quieras borrar (por ejemplo, 13).
+DELETE http://localhost:5000/api/tasks/13
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYsInVzZXJuYW1lIjoibnVldm9fdXN1YXJpb19wcnVlYmEiLCJlbWFpbCI6Im51ZXZvLmVtYWlsLnBydWViYUBleGFtcGxlLmNvbSIsImlhdCI6MTc1MTY0OTY2OCwiZXhwIjoxNzUxNjUzMjY4fQ.ye6wtIf6moa40ZJsnIqbgGkdYalNVJxw75X0mT4RxK0
+
+
+
+### Reorder Tasks
+# Reordena múltiples tareas para el usuario autenticado.
+# ¡IMPORTANTE! Confirma los IDs de tus tareas con 'Get All Tasks' y ajústalos aquí.
+# Si eliminaste la tarea 13, no la incluyas en este array.
+PUT http://localhost:5000/api/tasks/reorder
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYsInVzZXJuYW1lIjoibnVldm9fdXN1YXJpb19wcnVlYmEiLCJlbWFpbCI6Im51ZXZvLmVtYWlsLnBydWViYUBleGFtcGxlLmNvbSIsImlhdCI6MTc1MTY0OTY2OCwiZXhwIjoxNzUxNjUzMjY4fQ.ye6wtIf6moa40ZJsnIqbgGkdYalNVJxw75X0mT4RxK0
+
+{
+    "orderedTasks": [
+        { "id": 14, "orderIndex": 0 }, 
+        { "id": 15, "orderIndex": 1 }
+        // Si tienes más tareas (y quieres reordenarlas), añádelas aquí con sus IDs y el orderIndex deseado.
+        // Ejemplo con tres tareas (si no borraste la 13):
+        // { "id": 10, "orderIndex": 1 },
+        // { "id": 12, "orderIndex": 0 },
+        // { "id": 13, "orderIndex": 2 }
+    ]
+}

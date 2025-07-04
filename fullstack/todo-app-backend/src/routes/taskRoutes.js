@@ -1,35 +1,156 @@
 // src/routes/taskRoutes.js
 const express = require('express');
-const authMiddleware = require('../middleware/authMiddleware'); // Importa el middleware de autenticación
-const db = require('../db'); // Importa la instancia de la base de datos
-const { tasks } = require('../db/schema'); // Importa la tabla de tareas del esquema
-const { eq, and } = require('drizzle-orm'); // Necesitas 'eq' para WHERE y 'and' para múltiples condiciones
+const authMiddleware = require('../middleware/authMiddleware');
+const db = require('../db');
+const { tasks } = require('../db/schema');
+const { eq, and, count } = require('drizzle-orm');
 
 const router = express.Router();
 
-// --- RUTAS PROTEGIDAS POR AUTENTICACIÓN ---
-// Todas estas rutas usarán 'authMiddleware' para asegurar que el usuario esté logueado
+// Middleware de autenticación para todas las rutas definidas en este router.
+router.use(authMiddleware);
 
-// Ruta para crear una nueva tarea
-router.post('/', authMiddleware, async (req, res) => {
+// --- RUTA: Reordenar Tareas (PUT /api/tasks/reorder) ---
+// ¡IMPORTANTE: COLOCADA AQUÍ PARA EVITAR CONFLICTOS CON /:id!
+router.put('/reorder', async (req, res) => {
+    try {
+        console.log('--- ¡¡¡EJECUTANDO RUTA /api/tasks/reorder DENTRO DE taskRoutes.js!!! ---');
+
+        const { orderedTasks } = req.body;
+        const userId = req.user.userId;
+
+        console.log('--- Intentando reordenar tareas ---');
+        console.log('Usuario ID (desde token):', userId);
+        console.log('Cuerpo de la solicitud (orderedTasks):', JSON.stringify(orderedTasks, null, 2));
+
+        if (!Array.isArray(orderedTasks) || orderedTasks.length === 0) {
+            console.log('Error de validación inicial: Array de tareas ordenadas inválido o vacío.');
+            return res.status(400).json({ message: 'Array de tareas ordenadas inválido.' });
+        }
+
+        const transaction = await db.transaction(async (tx) => {
+            const results = [];
+            for (const taskUpdate of orderedTasks) {
+                const { id, orderIndex } = taskUpdate;
+
+                console.log(`Procesando tarea ID: ${id}, newOrderIndex: ${orderIndex}`);
+
+                if (typeof id !== 'number' || typeof orderIndex !== 'number') {
+                    console.log(`Error: ID ${id} o orderIndex ${orderIndex} no son números.`);
+                    throw new Error('Formato de tarea ordenada inválido: id y orderIndex deben ser números enteros.');
+                }
+
+                const existingTask = await tx.select()
+                                            .from(tasks)
+                                            .where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
+
+                console.log(`Verificación de existencia para Tarea ID ${id} con Usuario ID ${userId}:`, existingTask);
+
+                if (existingTask.length === 0) {
+                    console.log(`VALIDACIÓN FALLIDA: Tarea con ID ${id} no encontrada o no pertenece al usuario ${userId}.`);
+                    throw new Error(`Tarea con ID ${id} no encontrada o no pertenece a este usuario.`);
+                }
+
+                const updated = await tx.update(tasks)
+                                        .set({ orderIndex: orderIndex, updatedAt: new Date() })
+                                        .where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
+                                        .returning({ id: tasks.id, orderIndex: tasks.orderIndex });
+
+                console.log(`Resultado de actualización para ID ${id}:`, updated);
+
+                if (updated.length > 0) {
+                    results.push(updated[0]);
+                } else {
+                    console.log(`Advertencia: La tarea con ID ${id} no se actualizó, a pesar de existir.`);
+                    throw new Error(`Fallo al actualizar la tarea con ID ${id}.`);
+                }
+            }
+            return results;
+        });
+
+        if (transaction.length === 0) {
+            console.log('Advertencia: La transacción se completó, pero no se reordenó ninguna tarea.');
+            return res.status(400).json({ message: 'Ninguna tarea fue reordenada, verifica los IDs y el usuario.' });
+        }
+
+        console.log('Reordenamiento exitoso. Tareas actualizadas:', transaction);
+        res.status(200).json({ message: 'Tareas reordenadas exitosamente', updatedTasks: transaction });
+    } catch (error) {
+        console.error('--- ERROR al reordenar tareas (DETALLE COMPLETO) ---');
+        console.error('Mensaje:', error.message);
+        console.error('Stack:', error.stack);
+        console.error('----------------------------------------------------');
+
+        res.status(500).json({ message: error.message || 'Error interno del servidor al reordenar tareas.' });
+    }
+});
+
+// --- FIN RUTA REORDER ---
+
+
+// Ruta para obtener todas las tareas del usuario (GET /api/tasks)
+router.get('/', async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const userTasks = await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(tasks.orderIndex); // Ordenar por orderIndex
+        res.status(200).json(userTasks);
+    } catch (error) {
+        console.error('Error al obtener tareas:', error);
+        res.status(500).json({ message: 'Error interno del servidor al obtener tareas.' });
+    }
+});
+
+// Ruta para obtener una tarea por ID (GET /api/tasks/:id)
+// ESTA RUTA DEBE IR DESPUÉS DE /reorder para evitar conflictos.
+router.get('/:id', async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.id);
+        const userId = req.user.userId;
+
+        if (isNaN(taskId)) {
+            return res.status(400).json({ message: 'ID de tarea inválido.' });
+        }
+
+        const taskArray = await db.select().from(tasks).where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
+        const task = taskArray[0];
+
+        if (!task) {
+            return res.status(404).json({ message: 'Tarea no encontrada o no pertenece al usuario.' });
+        }
+
+        res.status(200).json(task);
+    } catch (error) {
+        console.error('Error al obtener tarea por ID:', error);
+        res.status(500).json({ message: 'Error interno del servidor al obtener la tarea.' });
+    }
+});
+
+
+// Ruta para crear una nueva tarea (POST /api/tasks)
+router.post('/', async (req, res) => {
     try {
         const { title, description, status, priority, dueDate } = req.body;
-        const userId = req.user.userId; // Obtenemos el ID del usuario del token JWT (adjuntado por authMiddleware)
+        const userId = req.user.userId;
 
-        // Validación básica de entrada
         if (!title) {
             return res.status(400).json({ message: 'El título de la tarea es requerido.' });
         }
+
+        const taskCountResult = await db.select({ count: count() })
+                                        .from(tasks)
+                                        .where(eq(tasks.userId, userId));
+        const currentTaskCount = taskCountResult[0].count;
+        const newOrderIndex = currentTaskCount; 
 
         const newTask = await db.insert(tasks).values({
             userId,
             title,
             description,
-            status: status || 'pending', // Default a 'pending' si no se proporciona
-            priority: priority || 'low',   // Default a 'low' si no se proporciona
-            dueDate: dueDate ? new Date(dueDate) : null, // Convertir a objeto Date o null
-            // createdAt y updatedAt se manejarán con defaultNow() en el esquema
-        }).returning(); // .returning() para obtener la tarea insertada
+            status: status || 'pending',
+            priority: priority || 'low',
+            dueDate: dueDate ? new Date(dueDate) : null,
+            orderIndex: newOrderIndex,
+        }).returning();
 
         if (!newTask || newTask.length === 0) {
             return res.status(500).json({ message: 'Error al crear la tarea.' });
@@ -42,49 +163,8 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 });
 
-// Ruta para obtener todas las tareas del usuario autenticado
-router.get('/', authMiddleware, async (req, res) => {
-    try {
-        const userId = req.user.userId; // Obtenemos el ID del usuario del token JWT
-
-        // Selecciona todas las tareas que pertenecen al usuario autenticado
-        const userTasks = await db.select().from(tasks).where(eq(tasks.userId, userId));
-
-        res.status(200).json(userTasks); // Envía el array de tareas
-    } catch (error) {
-        console.error('Error al obtener tareas:', error);
-        res.status(500).json({ message: 'Error interno del servidor al obtener las tareas.' });
-    }
-});
-
-// Ruta para obtener una tarea específica por ID
-router.get('/:id', authMiddleware, async (req, res) => {
-    try {
-        const taskId = parseInt(req.params.id); // Convierte el ID de la URL a número
-        const userId = req.user.userId;
-
-        if (isNaN(taskId)) {
-            return res.status(400).json({ message: 'ID de tarea inválido.' });
-        }
-
-        // Busca la tarea por ID y asegúrate de que pertenezca al usuario autenticado
-        const task = await db.select()
-                           .from(tasks)
-                           .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
-
-        if (!task || task.length === 0) {
-            return res.status(404).json({ message: 'Tarea no encontrada o no pertenece a este usuario.' });
-        }
-
-        res.status(200).json(task[0]);
-    } catch (error) {
-        console.error('Error al obtener tarea por ID:', error);
-        res.status(500).json({ message: 'Error interno del servidor al obtener la tarea.' });
-    }
-});
-
-// Ruta para actualizar una tarea existente
-router.put('/:id', authMiddleware, async (req, res) => {
+// Ruta para actualizar una tarea (PUT /api/tasks/:id)
+router.put('/:id', async (req, res) => {
     try {
         const taskId = parseInt(req.params.id);
         const userId = req.user.userId;
@@ -94,24 +174,25 @@ router.put('/:id', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'ID de tarea inválido.' });
         }
 
-        // Prepara los datos a actualizar, solo incluyendo los que se proporcionaron
-        const updatedData = {};
-        if (title !== undefined) updatedData.title = title;
-        if (description !== undefined) updatedData.description = description;
-        if (status !== undefined) updatedData.status = status;
-        if (priority !== undefined) updatedData.priority = priority;
-        if (dueDate !== undefined) updatedData.dueDate = dueDate ? new Date(dueDate) : null;
-        if (completedAt !== undefined) updatedData.completedAt = completedAt ? new Date(completedAt) : null;
-        updatedData.updatedAt = new Date(); // Actualiza el timestamp de modificación
+        const updateFields = { updatedAt: new Date() };
+        if (title !== undefined) updateFields.title = title;
+        if (description !== undefined) updateFields.description = description;
+        if (status !== undefined) updateFields.status = status;
+        if (priority !== undefined) updateFields.priority = priority;
+        if (dueDate !== undefined) updateFields.dueDate = dueDate ? new Date(dueDate) : null;
+        if (completedAt !== undefined) updateFields.completedAt = completedAt ? new Date(completedAt) : null;
 
-        // Actualiza la tarea, asegurando que pertenezca al usuario y devuelva la tarea actualizada
+        if (Object.keys(updateFields).length === 1 && updateFields.updatedAt) {
+            return res.status(400).json({ message: 'No se proporcionaron campos para actualizar.' });
+        }
+
         const updatedTask = await db.update(tasks)
-                                   .set(updatedData)
-                                   .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
-                                   .returning();
+                                        .set(updateFields)
+                                        .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+                                        .returning();
 
         if (!updatedTask || updatedTask.length === 0) {
-            return res.status(404).json({ message: 'Tarea no encontrada o no pertenece a este usuario.' });
+            return res.status(404).json({ message: 'Tarea no encontrada o no pertenece al usuario.' });
         }
 
         res.status(200).json({ message: 'Tarea actualizada exitosamente', task: updatedTask[0] });
@@ -121,8 +202,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Ruta para eliminar una tarea
-router.delete('/:id', authMiddleware, async (req, res) => {
+// Ruta para eliminar una tarea (DELETE /api/tasks/:id)
+router.delete('/:id', async (req, res) => {
     try {
         const taskId = parseInt(req.params.id);
         const userId = req.user.userId;
@@ -131,13 +212,12 @@ router.delete('/:id', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'ID de tarea inválido.' });
         }
 
-        // Elimina la tarea, asegurando que pertenezca al usuario
         const deletedTask = await db.delete(tasks)
-                                  .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
-                                  .returning(); // Drizzle retorna los registros eliminados
+                                        .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+                                        .returning();
 
         if (!deletedTask || deletedTask.length === 0) {
-            return res.status(404).json({ message: 'Tarea no encontrada o no pertenece a este usuario.' });
+            return res.status(404).json({ message: 'Tarea no encontrada o no pertenece al usuario.' });
         }
 
         res.status(200).json({ message: 'Tarea eliminada exitosamente', task: deletedTask[0] });
