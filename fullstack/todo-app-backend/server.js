@@ -4,7 +4,6 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./src/routes/authRoutes');
 const taskRoutes = require('./src/routes/taskRoutes'); // taskRoutes ahora maneja reordenamiento
-// const reorderRoutes = require('./src/routes/reorderRoutes'); // ¡Ya no se importa!
 const db = require('./src/db'); // Importa la instancia de db para asegurar que se inicialice
 
 const app = express();
@@ -28,19 +27,9 @@ app.use((req, res, next) => {
 });
 // --- FIN LOG DE DEPURACIÓN GLOBAL ---
 
-// --- RUTA DE PRUEBA TEMPORAL ---
-// Puedes eliminar esta ruta una vez que la funcionalidad de reordenamiento esté confirmada.
-app.get('/test-express-route-setup', (req, res) => {
-    console.log('--- ¡¡¡RUTA DE PRUEBA /test-express-route-setup ACTIVADA!!! ---');
-    res.status(200).send('Ruta de prueba de Express activada correctamente.');
-});
-// --- FIN RUTA DE PRUEBA TEMPORAL ---
-
-
-// Rutas
+// --- RUTAS DE LA APLICACIÓN ---
 app.use('/api/auth', authRoutes); // Rutas para registro y login
-app.use('/api/tasks', taskRoutes); // Rutas para operaciones CRUD de tareas, ¡incluyendo reordenamiento ahora!
-// app.use('/api/tasks/reorder', reorderRoutes); // ¡Ya no se monta aquí!
+app.use('/api/tasks', taskRoutes); // Rutas para operaciones CRUD de tareas y reordenamiento
 
 // Ruta de prueba simple para la raíz del API
 app.get('/', (req, res) => {
