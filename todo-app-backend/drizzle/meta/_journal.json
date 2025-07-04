@@ -1,0 +1,20 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1751564317541,
+      "tag": "0000_large_cerise",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1751565051224,
+      "tag": "0001_mixed_living_tribunal",
+      "breakpoints": true
+    }
+  ]
+}

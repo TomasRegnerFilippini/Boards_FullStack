@@ -1,0 +1,66 @@
+### @name 1. Register User
+# POST /api/auth/register - Registra un nuevo usuario en la base de datos.
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+    "username": "myuser",
+    "password": "mypassword123"
+}
+
+### @name 2. Login User
+# POST /api/auth/login - Inicia sesión y obtiene un token JWT para el usuario.
+# Si tu token actual expira, puedes ejecutar esta solicitud de nuevo para obtener uno nuevo.
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "myuser",
+    "password": "mypassword123"
+}
+
+### @name 3. Create Task
+# POST /api/tasks - Crea una nueva tarea para el usuario autenticado.
+# Requiere un token JWT válido en el encabezado Authorization.
+POST http://localhost:5000/api/tasks
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
+
+{
+    "title": "Configurar ambiente de desarrollo",
+    "description": "Instalar Node.js, npm, git y VS Code.",
+    "status": "pending",
+    "priority": "high",
+    "dueDate": "2025-07-05T17:00:00Z"
+}
+
+### @name 4. Get All Tasks
+# GET /api/tasks - Obtiene todas las tareas del usuario autenticado.
+# Requiere un token JWT válido.
+GET http://localhost:5000/api/tasks
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
+
+### @name 5. Get Task by ID
+# GET /api/tasks/:id - Obtiene una tarea específica por su ID, si pertenece al usuario.
+# Requiere un token JWT válido. Reemplaza '1' con el ID real de una tarea que hayas creado.
+GET http://localhost:5000/api/tasks/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
+
+### @name 6. Update Task
+# PUT /api/tasks/:id - Actualiza una tarea existente por su ID, si pertenece al usuario.
+# Requiere un token JWT válido. Reemplaza '1' con el ID real de una tarea.
+PUT http://localhost:5000/api/tasks/1
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
+
+{
+    "title": "Configurar ambiente (Completado)",
+    "status": "completed",
+    "completedAt": "2025-07-03T18:45:00Z"
+}
+
+### @name 7. Delete Task
+# DELETE /api/tasks/:id - Elimina una tarea por su ID, si pertenece al usuario.
+# Requiere un token JWT válido. Reemplaza '1' con el ID real de una tarea.
+DELETE http://localhost:5000/api/tasks/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidHVfcHJpbWVyX3VzdWFyaW8iLCJpYXQiOjE3NTE1NjU4NTAsImV4cCI6MTc1MTU2OTQ1MH0.-H51kgcGcgPhQIVA2sxOBz3oGGmmIbdQ6dxhyH-lJzI
