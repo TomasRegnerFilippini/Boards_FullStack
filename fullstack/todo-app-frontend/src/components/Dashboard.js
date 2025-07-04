@@ -7,7 +7,7 @@ const Dashboard = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const API_TASKS_URL = 'http://localhost:5000/api/tasks'; // URL base para las tareas
+  const API_TASKS_URL = 'http://localhost:5000/api/tasks';
 
   // Función para obtener todas las tareas del usuario
   const fetchTasks = async () => {
@@ -32,7 +32,9 @@ const Dashboard = ({ onLogout }) => {
       const data = await response.json();
 
       if (response.ok) {
-        setTasks(data); // Asume que el backend devuelve un array de tareas
+        // Ordenar las tareas por ID (o createdAt) para una consistencia visual
+        // Si necesitas un ordenamiento personalizado, requerirá un campo en el backend.
+        setTasks(data.sort((a, b) => a.id - b.id));
       } else {
         setError(data.message || 'Error al cargar las tareas.');
       }
@@ -46,7 +48,7 @@ const Dashboard = ({ onLogout }) => {
 
   // Función para crear una nueva tarea
   const handleCreateTask = async (e) => {
-    e.preventDefault(); // Previene la recarga de la página
+    e.preventDefault();
     setError('');
     if (!newTaskTitle.trim()) {
       setError('El título de la tarea no puede estar vacío.');
@@ -66,14 +68,14 @@ const Dashboard = ({ onLogout }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ title: newTaskTitle, status: 'pending', priority: 'low' }), // Valores por defecto
+        body: JSON.stringify({ title: newTaskTitle, status: 'pending', priority: 'low' }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setTasks(prevTasks => [...prevTasks, data.task]); // Añade la nueva tarea al estado
-        setNewTaskTitle(''); // Limpia el input
+        setTasks(prevTasks => [...prevTasks, data.task].sort((a, b) => a.id - b.id)); // Añade y reordena
+        setNewTaskTitle('');
       } else {
         setError(data.message || 'Error al crear la tarea.');
       }
@@ -83,10 +85,84 @@ const Dashboard = ({ onLogout }) => {
     }
   };
 
+  // Función para marcar/desmarcar una tarea como completada
+  const handleToggleComplete = async (taskId, currentStatus) => {
+    setError('');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('No autenticado. Por favor, inicia sesión de nuevo.');
+      return;
+    }
+
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    const completedAt = newStatus === 'completed' ? new Date().toISOString() : null; // Marca la fecha de completado
+
+    try {
+      const response = await fetch(`${API_TASKS_URL}/${taskId}`, {
+        method: 'PUT', // Usamos PUT para actualizar
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus, completedAt: completedAt }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Actualiza el estado local de las tareas
+        setTasks(prevTasks =>
+          prevTasks.map(task =>
+            task.id === taskId ? { ...task, status: newStatus, completedAt: completedAt } : task
+          )
+        );
+      } else {
+        setError(data.message || 'Error al actualizar la tarea.');
+      }
+    } catch (err) {
+      setError('Error de red o del servidor al actualizar la tarea.');
+      console.error('Error al actualizar tarea:', err);
+    }
+  };
+
+  // Función para eliminar una tarea
+  const handleDeleteTask = async (taskId) => {
+    setError('');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('No autenticado. Por favor, inicia sesión de nuevo.');
+      return;
+    }
+
+    if (!window.confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+      return; // Si el usuario cancela, no hacemos nada
+    }
+
+    try {
+      const response = await fetch(`${API_TASKS_URL}/${taskId}`, {
+        method: 'DELETE', // Usamos DELETE para eliminar
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        // Filtra la tarea eliminada del estado local
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+      } else {
+        const data = await response.json();
+        setError(data.message || 'Error al eliminar la tarea.');
+      }
+    } catch (err) {
+      setError('Error de red o del servidor al eliminar la tarea.');
+      console.error('Error al eliminar tarea:', err);
+    }
+  };
+
   // Cargar tareas cuando el componente se monta
   useEffect(() => {
     fetchTasks();
-  }, []); // El array vacío asegura que se ejecute solo una vez al montar
+  }, []);
 
   return (
     <div style={dashboardContainerStyle}>
@@ -123,10 +199,27 @@ const Dashboard = ({ onLogout }) => {
           <ul style={taskListStyle}>
             {tasks.map(task => (
               <li key={task.id} style={taskItemStyle}>
-                <span style={{ textDecoration: task.status === 'completed' ? 'line-through' : 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={task.status === 'completed'}
+                  onChange={() => handleToggleComplete(task.id, task.status)}
+                  style={checkboxStyle}
+                />
+                <span style={{
+                  textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                  flexGrow: 1,
+                  textAlign: 'left',
+                  marginLeft: '10px'
+                }}>
                   {task.title}
                 </span>
-                {/* Futuros botones de editar/eliminar/marcar completado irán aquí */}
+                <button
+                  onClick={() => handleDeleteTask(task.id)}
+                  style={deleteButtonStyle}
+                  title="Eliminar tarea"
+                >
+                  🗑️ {/* Icono de tachito de basura */}
+                </button>
               </li>
             ))}
           </ul>
@@ -206,9 +299,24 @@ const taskItemStyle = {
     marginBottom: '8px',
     borderRadius: '5px',
     display: 'flex',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start', // Alinea los elementos a la izquierda
     alignItems: 'center',
     fontSize: '1.1em'
+};
+
+const checkboxStyle = {
+    marginRight: '10px',
+    transform: 'scale(1.2)' // Hace el checkbox un poco más grande
+};
+
+const deleteButtonStyle = {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '1.5em', // Tamaño del icono
+    marginLeft: '15px', // Espacio a la izquierda del icono
+    padding: '0 5px',
+    color: '#dc3545' // Color del icono
 };
 
 export default Dashboard;
