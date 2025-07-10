@@ -1,0 +1,31 @@
+# Dependencias
+/node_modules
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# Drizzle ORM Migrations
+/drizzle # Esto ignora toda la carpeta de migraciones de Drizzle
+# Si quieres subir la carpeta drizzle pero ignorar solo el archivo de estado de Drizzle, usa:
+# /drizzle/meta.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor de texto/IDE files
+.vscode/ # Ignorar configuraciones de VS Code (opcional, pero común)
+.idea/   # Ignorar configuraciones de JetBrains IDEs (opcional)
+*.swp
+*.swo
+.DS_Store # Archivos de macOS
+
+# Archivos de caché o temporales
+/tmp
+*.tmp
+*.bak
+*~
